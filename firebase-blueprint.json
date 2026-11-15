@@ -1,0 +1,150 @@
+{
+  "entities": {
+    "TrackedDevice": {
+      "title": "TrackedDevice",
+      "description": "Represents a monitored Android device with live GPS coordinates, telemetry, and theft-alert status.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "Authenticated owner UID."
+        },
+        "deviceName": {
+          "type": "string",
+          "description": "Display name of the tracked device."
+        },
+        "isTracking": {
+          "type": "boolean",
+          "description": "Whether the foreground GPS streaming service is currently active."
+        },
+        "status": {
+          "type": "string",
+          "enum": ["active", "paused", "alert"],
+          "description": "Current protection state of the device."
+        },
+        "latitude": {
+          "type": "number",
+          "description": "Latest WGS84 latitude."
+        },
+        "longitude": {
+          "type": "number",
+          "description": "Latest WGS84 longitude."
+        },
+        "accuracyMeters": {
+          "type": "number",
+          "description": "Estimated horizontal GPS accuracy radius in meters."
+        },
+        "speedMps": {
+          "type": "number",
+          "description": "Current movement speed in meters per second."
+        },
+        "altitudeMeters": {
+          "type": "number",
+          "description": "Altitude above sea level in meters."
+        },
+        "batteryPercent": {
+          "type": "integer",
+          "description": "Current battery percentage (0-100)."
+        },
+        "isCharging": {
+          "type": "boolean",
+          "description": "Whether the device is connected to power."
+        },
+        "updateIntervalSec": {
+          "type": "integer",
+          "description": "Requested location sync interval in seconds."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp when device was registered (submitted via FieldValue.serverTimestamp())."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp of the latest telemetry or settings update (submitted via FieldValue.serverTimestamp())."
+        }
+      },
+      "required": [
+        "userId",
+        "deviceName",
+        "isTracking",
+        "status",
+        "latitude",
+        "longitude",
+        "accuracyMeters",
+        "speedMps",
+        "altitudeMeters",
+        "batteryPercent",
+        "isCharging",
+        "updateIntervalSec",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "LocationPing": {
+      "title": "LocationPing",
+      "description": "Immutable GPS breadcrumb recorded along a device's movement trail.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "Authenticated owner UID."
+        },
+        "deviceId": {
+          "type": "string",
+          "description": "Parent TrackedDevice document ID."
+        },
+        "latitude": {
+          "type": "number",
+          "description": "WGS84 latitude at ping time."
+        },
+        "longitude": {
+          "type": "number",
+          "description": "WGS84 longitude at ping time."
+        },
+        "accuracyMeters": {
+          "type": "number",
+          "description": "Horizontal accuracy in meters."
+        },
+        "speedMps": {
+          "type": "number",
+          "description": "Speed in meters per second."
+        },
+        "batteryPercent": {
+          "type": "integer",
+          "description": "Battery percentage at ping time."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp when ping was recorded (submitted via FieldValue.serverTimestamp())."
+        }
+      },
+      "required": [
+        "userId",
+        "deviceId",
+        "latitude",
+        "longitude",
+        "accuracyMeters",
+        "speedMps",
+        "batteryPercent",
+        "createdAt"
+      ]
+    }
+  },
+  "firestore": {
+    "/users/{userId}/devices/{deviceId}": {
+      "schema": {
+        "$ref": "#/entities/TrackedDevice"
+      },
+      "description": "User-owned devices streaming live GPS coordinates and telemetry."
+    },
+    "/users/{userId}/devices/{deviceId}/pings/{pingId}": {
+      "schema": {
+        "$ref": "#/entities/LocationPing"
+      },
+      "description": "Append-only location trail history for a specific user device."
+    }
+  }
+}

@@ -1,0 +1,119 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Global default-deny safety net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isValidCoordinates(lat, lng) {
+      return lat is number && lat >= -90.0 && lat <= 90.0 &&
+             lng is number && lng >= -180.0 && lng <= 180.0;
+    }
+
+    function isValidDevice(data, userId) {
+      return data.userId is string && data.userId == userId &&
+             data.deviceName is string && data.deviceName.size() >= 1 && data.deviceName.size() <= 60 &&
+             data.isTracking is bool &&
+             data.status is string && data.status in ['active', 'paused', 'alert'] &&
+             isValidCoordinates(data.latitude, data.longitude) &&
+             data.accuracyMeters is number && data.accuracyMeters >= 0.0 && data.accuracyMeters <= 100000.0 &&
+             data.speedMps is number && data.speedMps >= 0.0 && data.speedMps <= 500.0 &&
+             data.altitudeMeters is number && data.altitudeMeters >= -1000.0 && data.altitudeMeters <= 50000.0 &&
+             data.batteryPercent is int && data.batteryPercent >= 0 && data.batteryPercent <= 100 &&
+             data.isCharging is bool &&
+             data.updateIntervalSec is int && data.updateIntervalSec >= 3 && data.updateIntervalSec <= 300;
+    }
+
+    function isValidPing(data, userId, deviceId) {
+      return data.userId is string && data.userId == userId &&
+             data.deviceId is string && data.deviceId == deviceId &&
+             isValidCoordinates(data.latitude, data.longitude) &&
+             data.accuracyMeters is number && data.accuracyMeters >= 0.0 && data.accuracyMeters <= 100000.0 &&
+             data.speedMps is number && data.speedMps >= 0.0 && data.speedMps <= 500.0 &&
+             data.batteryPercent is int && data.batteryPercent >= 0 && data.batteryPercent <= 100;
+    }
+
+    match /users/{userId}/devices/{deviceId} {
+      allow list: if isOwner(userId);
+      allow get, delete: if isOwner(userId) && isValidId(deviceId);
+
+      allow create: if isOwner(userId) &&
+                       isValidId(deviceId) &&
+                       incoming().keys().hasAll([
+                         'userId', 'deviceName', 'isTracking', 'status',
+                         'latitude', 'longitude', 'accuracyMeters', 'speedMps', 'altitudeMeters',
+                         'batteryPercent', 'isCharging', 'updateIntervalSec', 'createdAt', 'updatedAt'
+                       ]) &&
+                       incoming().keys().hasOnly([
+                         'userId', 'deviceName', 'isTracking', 'status',
+                         'latitude', 'longitude', 'accuracyMeters', 'speedMps', 'altitudeMeters',
+                         'batteryPercent', 'isCharging', 'updateIntervalSec', 'createdAt', 'updatedAt'
+                       ]) &&
+                       incoming().createdAt is timestamp && incoming().createdAt <= request.time &&
+                       incoming().updatedAt is timestamp && incoming().updatedAt <= request.time &&
+                       isValidDevice(incoming(), userId);
+
+      allow update: if isOwner(userId) &&
+                       isValidId(deviceId) &&
+                       isValidDevice(incoming(), userId) &&
+                       incoming().userId == existing().userId &&
+                       incoming().createdAt == existing().createdAt &&
+                       incoming().updatedAt is timestamp && incoming().updatedAt <= request.time &&
+                       (
+                         // Action 1: Live GPS telemetry & battery fix update
+                         incoming().diff(existing()).affectedKeys().hasOnly([
+                           'latitude', 'longitude', 'accuracyMeters', 'speedMps', 'altitudeMeters',
+                           'batteryPercent', 'isCharging', 'isTracking', 'status', 'updatedAt'
+                         ]) ||
+                         // Action 2: Device protection settings / theft alert mode toggle
+                         incoming().diff(existing()).affectedKeys().hasOnly([
+                           'deviceName', 'isTracking', 'status', 'updateIntervalSec', 'updatedAt'
+                         ])
+                       );
+
+      match /pings/{pingId} {
+        allow list: if isOwner(userId) && isValidId(deviceId);
+        allow get, delete: if isOwner(userId) && isValidId(deviceId) && isValidId(pingId);
+
+        allow create: if isOwner(userId) &&
+                         isValidId(deviceId) &&
+                         isValidId(pingId) &&
+                         incoming().keys().hasAll([
+                           'userId', 'deviceId', 'latitude', 'longitude',
+                           'accuracyMeters', 'speedMps', 'batteryPercent', 'createdAt'
+                         ]) &&
+                         incoming().keys().hasOnly([
+                           'userId', 'deviceId', 'latitude', 'longitude',
+                           'accuracyMeters', 'speedMps', 'batteryPercent', 'createdAt'
+                         ]) &&
+                         incoming().createdAt is timestamp && incoming().createdAt <= request.time &&
+                         isValidPing(incoming(), userId, deviceId) &&
+                         exists(/databases/$(database)/documents/users/$(userId)/devices/$(deviceId));
+
+        allow update: if false;
+      }
+    }
+  }
+}

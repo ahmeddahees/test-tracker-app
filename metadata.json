@@ -1,0 +1,6 @@
+{
+  "name": "حارس الموقع",
+  "description": "تطبيق حماية الهاتف وتتبع الموقع لحظة بلحظة ومزامنته عبر السحابة لمتابعته من الكمبيوتر أو أي جهاز آخر.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

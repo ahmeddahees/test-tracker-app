@@ -1,0 +1,15 @@
+<resources>
+    <string name="app_name">حارس الموقع</string>
+    <string name="notification_channel_name">بث الموقع المباشر</string>
+    <string name="notification_channel_desc">إشعار مستمر أثناء تأمين الهاتف ومزامنة الموقع لحظياً</string>
+    <string name="notification_title_active">حارس الموقع نشط</string>
+    <string name="notification_title_alert">تنبيه سرقة مفعّل — بث فوري</string>
+    <string name="notification_body_waiting">جاري تحديد إحداثيات GPS بدقة عالية...</string>
+    <string name="sign_in_title">حارس الموقع</string>
+    <string name="sign_in_subtitle">تتبع هاتفك لحظة بلحظة واربطه بحسابك لمتابعته من الكمبيوتر أو أي جهاز آخر عند الطوارئ.</string>
+    <string name="sign_in_google_button">تسجيل الدخول بحساب Google</string>
+    <string name="nav_guard">الحماية</string>
+    <string name="nav_monitor">المراقبة</string>
+    <string name="nav_pc_link">الكمبيوتر</string>
+    <string name="action_sign_out">تسجيل الخروج</string>
+</resources>
